@@ -1,0 +1,94 @@
+<template>
+    <div class="mx-[4rem] relative h-[600px] bg-[#f0f0f0]" @dragover.prevent @drop="drop" ref="canvas">
+        <div v-for="(element, index) in canvasStore.elements" :key="index"
+            :style="{ left: element.position.x + 'px', top: element.position.y + 'px', backgroundColor: element.color, width: element.width + 'px' }"
+            class="h-[110px] absolute cursor-move" @mousedown="startDrag(index, $event)">
+            <div @mousedown.stop="startResize(index, $event)"
+                class="absolute top-0 right-0 h-full w-4 bg-[#00000033] cursor-ew-resize"></div>
+        </div>
+    </div>
+</template>
+
+<script>
+import { useCanvasStore } from '@/stores/canvas';
+
+export default {
+    data() {
+        return {
+            draggingIndex: null,
+            resizingIndex: null,
+            offsetX: 0,
+            offsetY: 0,
+            initialWidth: 0,
+        };
+    },
+    computed: {
+        canvasStore() {
+            return useCanvasStore();
+        },
+    },
+    methods: {
+        drop(event) {
+            const color = event.dataTransfer.getData('color');
+            const position = { x: event.offsetX, y: event.offsetY };
+            this.canvasStore.addElement({ color, position, width: 200 }); // initialize with default width
+        },
+        startDrag(index, event) {
+            this.draggingIndex = index;
+            this.offsetX = event.offsetX;
+            this.offsetY = event.offsetY;
+            document.addEventListener('mousemove', this.drag);
+            document.addEventListener('mouseup', this.stopDrag);
+        },
+        drag(event) {
+            if (this.draggingIndex !== null) {
+                const newX = event.clientX - this.offsetX;
+                const newY = event.clientY - this.offsetY;
+
+                const canvas = this.$refs.canvas;
+                const canvasRect = canvas.getBoundingClientRect();
+                const elementWidth = this.canvasStore.elements[this.draggingIndex].width;
+                const elementHeight = 100;
+
+                const snappedX = Math.round(newX / (canvas.clientWidth / 12)) * (canvas.clientWidth / 12);
+
+                const clampedX = Math.min(
+                    Math.max(snappedX, 0),
+                    canvas.clientWidth - elementWidth
+                );
+
+                const clampedY = Math.min(
+                    Math.max(newY, 0),
+                    canvas.clientHeight - elementHeight
+                );
+
+                this.canvasStore.updateElementPosition(this.draggingIndex, { x: clampedX, y: clampedY });
+            }
+        },
+        stopDrag() {
+            document.removeEventListener('mousemove', this.drag);
+            document.removeEventListener('mouseup', this.stopDrag);
+            this.draggingIndex = null;
+        },
+        startResize(index, event) {
+            this.resizingIndex = index;
+            this.initialWidth = this.canvasStore.elements[index].width;
+            this.offsetX = event.clientX;
+            document.addEventListener('mousemove', this.resize);
+            document.addEventListener('mouseup', this.stopResize);
+        },
+        resize(event) {
+            if (this.resizingIndex !== null) {
+                const deltaX = event.clientX - this.offsetX;
+                const newWidth = Math.max(100, this.initialWidth + deltaX); // minimum width is 100px
+                this.canvasStore.updateElementWidth(this.resizingIndex, newWidth);
+            }
+        },
+        stopResize() {
+            document.removeEventListener('mousemove', this.resize);
+            document.removeEventListener('mouseup', this.stopResize);
+            this.resizingIndex = null;
+        },
+    },
+};
+</script>
