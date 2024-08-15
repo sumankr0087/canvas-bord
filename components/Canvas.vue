@@ -31,22 +31,27 @@ export default {
         drop(event) {
             const color = event.dataTransfer.getData('color');
             const position = { x: event.offsetX, y: event.offsetY };
-            this.canvasStore.addElement({ color, position, width: 200 }); // initialize with default width
+            this.canvasStore.addElement({ color, position, width: 200 });
         },
         startDrag(index, event) {
             this.draggingIndex = index;
-            this.offsetX = event.offsetX;
-            this.offsetY = event.offsetY;
+            const element = this.$refs.canvas.children[index];
+            const rect = element.getBoundingClientRect();
+            
+            this.offsetX = event.clientX - rect.left;
+            this.offsetY = event.clientY - rect.top;
+            
             document.addEventListener('mousemove', this.drag);
             document.addEventListener('mouseup', this.stopDrag);
         },
         drag(event) {
             if (this.draggingIndex !== null) {
-                const newX = event.clientX - this.offsetX;
-                const newY = event.clientY - this.offsetY;
-
                 const canvas = this.$refs.canvas;
                 const canvasRect = canvas.getBoundingClientRect();
+                
+                const newX = event.clientX - canvasRect.left - this.offsetX;
+                const newY = event.clientY - canvasRect.top - this.offsetY;
+
                 const elementWidth = this.canvasStore.elements[this.draggingIndex].width;
                 const elementHeight = 100;
 
@@ -80,7 +85,7 @@ export default {
         resize(event) {
             if (this.resizingIndex !== null) {
                 const deltaX = event.clientX - this.offsetX;
-                const newWidth = Math.max(100, this.initialWidth + deltaX); // minimum width is 100px
+                const newWidth = Math.max(100, this.initialWidth + deltaX);
                 this.canvasStore.updateElementWidth(this.resizingIndex, newWidth);
             }
         },
