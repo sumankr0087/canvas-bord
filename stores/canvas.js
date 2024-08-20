@@ -15,5 +15,9 @@ export const useCanvasStore = defineStore('canvas', {
         updateElementWidth(index, width) {
             this.elements[index].width = width;
         },
+        updateElementHeight(index, height) {
+            console.log(height);
+            this.elements[index].height = height;
+        },
     },
 });
